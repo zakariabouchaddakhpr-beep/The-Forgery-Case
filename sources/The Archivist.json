@@ -1,0 +1,509 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "insert",
+        "authentication": "chromaCloudApi",
+        "chromaCollection": {
+          "__rl": true,
+          "value": "forgery_case_archivist",
+          "mode": "list",
+          "cachedResultName": "forgery_case_archivist"
+        },
+        "embeddingBatchSize": 20,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreChromaDB",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        0
+      ],
+      "id": "450be147-2941-41ed-932d-4b768b51f497",
+      "name": "Chroma Vector Store",
+      "credentials": {
+        "chromaCloudApi": {
+          "id": "5AJqxenjhu8dR4ig",
+          "name": "ChromaDB Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-english-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        288,
+        256
+      ],
+      "id": "6a09f3eb-5fbd-4b11-9769-52888abf4704",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "yXK0ARMgTrfQHgIa",
+          "name": "Cohere account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.chunk_text }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "chunk_id",
+                "value": "={{ $json.chunk_id }}"
+              },
+              {
+                "name": "doc_id",
+                "value": "={{ $json.doc_id }}"
+              },
+              {
+                "name": "case_id",
+                "value": "={{ $json.case_id }}"
+              },
+              {
+                "name": "title",
+                "value": "={{ $json.title }}"
+              },
+              {
+                "name": "date",
+                "value": "={{ $json.date }}"
+              },
+              {
+                "name": "museum",
+                "value": "={{ $json.museum }}"
+              },
+              {
+                "name": "url",
+                "value": "={{ $json.url }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        512,
+        272
+      ],
+      "id": "720c40a6-7627-468e-87ae-eba4ac7ad6fb",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "formTitle": "Chunks CSV Upload",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Chunks CSV",
+              "fieldType": "file",
+              "fieldName": "chunks_file",
+              "acceptFileTypes": "File",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "8237847c-a04a-420c-8b61-9d950cf7dbfa",
+      "name": "On form submission",
+      "webhookId": "458c67b4-c806-40f9-9120-ff088ddaaa84"
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "chunks_file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        128,
+        0
+      ],
+      "id": "d422f4dc-3dd8-4dfa-80ef-f00372a3f182",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "archiv-search",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        736,
+        192
+      ],
+      "id": "e5c1e9af-c700-45d4-81ed-b038f5c05569",
+      "name": "Webhook",
+      "webhookId": "49e8fc3f-8522-4ed0-910f-d5a8d0b00eee"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "authentication": "chromaCloudApi",
+        "chromaCollection": {
+          "__rl": true,
+          "value": "forgery_case_archivist",
+          "mode": "list"
+        },
+        "prompt": "={{ $json.body.query }}",
+        "topK": 5,
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "case_id",
+                "value": "={{ $json.body.case_id }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreChromaDB",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        192
+      ],
+      "id": "a76df074-4d2b-45ca-9498-b722457d5c58",
+      "name": "Chroma Vector Store1",
+      "credentials": {
+        "chromaCloudApi": {
+          "id": "5AJqxenjhu8dR4ig",
+          "name": "ChromaDB Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-english-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        400
+      ],
+      "id": "5aa17d7c-03dd-4d32-9145-ded3e1f676c2",
+      "name": "Embeddings Cohere1",
+      "credentials": {
+        "cohereApi": {
+          "id": "yXK0ARMgTrfQHgIa",
+          "name": "Cohere account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const CONFIDENCE_THRESHOLD = 1.2;\n// Calibrated from real test queries: a genuine match scored ~0.95,\n// a query with no real answer in the archive scored ~1.59-1.64 across\n// every result. Lower score = better match (squared L2 distance).\n\nconst items = $input.all();\n\nconst confident = items\n  .filter(item => item.json.score < CONFIDENCE_THRESHOLD)\n  .map(item => ({\n    title: item.json.document.metadata.title,\n    date: item.json.document.metadata.date,\n    museum: item.json.document.metadata.museum,\n    quote: item.json.document.pageContent,\n    score: item.json.score,\n  }));\n\nconst status = confident.length > 0 ? \"grounded\" : \"insufficient_evidence\";\n\nreturn [{\n  json: {\n    status: status,\n    sources: confident,\n    caveats: confident.length < items.length\n      ? [`${items.length - confident.length} additional weak/uncertain match(es) excluded (score >= ${CONFIDENCE_THRESHOLD}).`]\n      : [],\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        192
+      ],
+      "id": "a086a8e4-ce1b-4575-a739-b50da288b8b0",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7415821c-4839-4f9d-9cae-8d2e545aefd3",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "grounded",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1552,
+        192
+      ],
+      "id": "1a910a24-8aa9-4609-ae27-8d5e1cedc009",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c95ac7a4-1f8d-44fa-b293-0b862e336c08",
+              "name": "finding",
+              "value": "Not in the archive.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1776,
+        288
+      ],
+      "id": "7050f753-eba4-4dbd-bed7-bc0e82ee7aac",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst data = items[0].json;\n\nconst sourcesText = data.sources.map(s => {\n  const ref = s.date ? `${s.title} (${s.date})` : s.title;\n  return `- [${ref}]: \"${s.quote}\"`;\n}).join(\"\\n\");\n\nconst originalQuery = $('Webhook').item.json.body.query;\nconst userMessage = `Question: ${originalQuery}\\n\\nSources found in the archive:\\n${sourcesText}`;\n\nreturn [{\n  json: {\n    ...data,\n    llm_prompt: userMessage,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        96
+      ],
+      "id": "efcc945d-9d93-4237-8d3d-8004693f7314",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"openai/gpt-oss-20b\",\n  \"max_tokens\": 1000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are the Archivist, an expert in historical documents and provenance research for an art-authentication investigation.\\n\\nHard rules, no exceptions:\\n- Answer using ONLY the sources provided to you in this message. Never use outside knowledge about art history, forgeries, or any painting.\\n- Every claim you make must be attributable to one of the given sources. Cite each source by its title and date when you use it.\\n- Do not speculate about whether the painting is authentic or forged. You report what documents say; you do not render a verdict.\\n- Keep your answer to 2-4 sentences, in a measured, archival tone.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ JSON.stringify($json.llm_prompt).slice(1, -1) }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2000,
+        96
+      ],
+      "id": "6186a5f6-4683-4c5b-8b9a-9edef2775493",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jNoVI8ULBNeDtQTJ",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04f15a51-099c-4763-b31c-7e8c528ffafc",
+              "name": "status",
+              "value": "={{ $('Code in JavaScript1').item.json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "07cab231-488a-4af9-ba8a-c4e311cd2737",
+              "name": "sources",
+              "value": "={{ $('Code in JavaScript1').item.json.sources }}",
+              "type": "array"
+            },
+            {
+              "id": "f190bcb3-e2d7-4311-ae29-37365f7c9bb1",
+              "name": "caveats",
+              "value": "={{ $('Code in JavaScript1').item.json.caveats }}",
+              "type": "array"
+            },
+            {
+              "id": "707ae97b-0842-4ca9-aa0b-7ff869ffdcfc",
+              "name": "finding",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2224,
+        96
+      ],
+      "id": "a4e4be1c-3bfd-4b18-91c7-fe66e1b9bfb5",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Chroma Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Chroma Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Chroma Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Chroma Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Chroma Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chroma Vector Store1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c562225c-76fe-4438-a672-c0ffece6ac0f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7441e42476ba124a79d91c002155916a67653dbea4742556aa5cf4ad6783c02"
+  },
+  "nodeGroups": [],
+  "id": "BRN4Ou5npz5Kou7g",
+  "tags": []
+}

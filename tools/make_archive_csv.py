@@ -1,0 +1,100 @@
+"""Starter archive corpus for the Archivist, in the CSV shape its upload form expects.
+
+Run: python tools/make_archive_csv.py data/archive_corpus.csv
+Cases 2 and 3 are fiction (names, dealers, galleries invented). Case 1 summarises the public record.
+Replace with the team corpus by uploading another CSV with the same columns through the Archivist form.
+"""
+import csv
+import sys
+from pathlib import Path
+
+FICTION = "Game archive (fictional document)"
+ROWS = [
+    # ---------------- The Widow's Supper (fictional) ----------------
+    ("ws-01", "case_widows_supper", "Sale record: The Widow's Supper, 1952", "1952", FICTION, "neutral_background",
+     "Bill of sale dated 14 March 1952. The painting The Widow's Supper, oil on canvas, attributed to Cornelis van Leyden, "
+     "was sold to the museum through the dealer Aert de Wilde of The Hague, acting on behalf of a family that asked to remain "
+     "anonymous. The price paid was the highest the museum had ever spent on a single Dutch picture. The bill names no earlier "
+     "owner and refers only to 'an old Dutch family collection'."),
+    ("ws-02", "case_widows_supper", "Letter of endorsement by Dr. Abraham Verhulst", "1952", FICTION, "red_herring",
+     "Letter from Dr. Abraham Verhulst, the leading authority on Leiden painting of the later seventeenth century, to the museum "
+     "board, February 1952: 'I have no hesitation in calling this the masterpiece of Cornelis van Leyden. The gravity of the "
+     "figures and the handling of light on the cloth are his alone.' Verhulst examined the painting for one afternoon at the "
+     "dealer's premises and did not see any technical examination."),
+    ("ws-03", "case_widows_supper", "Provenance search report", "1953", FICTION, "supports_forged",
+     "Report of the museum registrar, 1953. A search of auction catalogues, estate inventories and exhibition records from 1650 "
+     "to 1950 found no mention of a supper scene by Cornelis van Leyden in any family collection. The dealer declined to name the "
+     "family. The registrar notes that the painting has no recorded history at all before its appearance at the dealer's in 1951."),
+    ("ws-04", "case_widows_supper", "Dealer file: Aert de Wilde", "1955", FICTION, "supports_forged",
+     "Internal file on the dealer Aert de Wilde, compiled 1955. Trained as a painter in the 1920s, de Wilde exhibited his own "
+     "work in the 1930s to poor reviews before turning to dealing. Between 1951 and 1955 he brought three 'newly discovered' "
+     "seventeenth-century Dutch paintings to market, each from an unnamed family collection, each praised by Dr. Verhulst."),
+    ("ws-05", "case_widows_supper", "Pre-sale condition note", "1952", FICTION, "supports_forged",
+     "Condition note written by the museum's restorer before purchase, 1952. 'The paint surface is unusually hard and resists "
+     "the usual solvents; a cotton swab with alcohol had no effect even in the darks. The crack pattern is regular and the "
+     "cracks appear filled with a dark deposit. Varnish removal was not attempted.' The note was filed and not discussed by the board."),
+    ("ws-06", "case_widows_supper", "Cornelis van Leyden: life and works", "1950", FICTION, "red_herring",
+     "Reference entry. Cornelis van Leyden (c. 1630-1702), Leiden painter of quiet interior scenes, of whom fewer than a dozen "
+     "works are known. His death inventory of 1702 lists 'a supper piece with a widow, unfinished'. No such painting was known "
+     "until 1951; the entry was widely cited as proof that The Widow's Supper is the lost work."),
+
+    # ---------------- Blue Horses at Dusk (fictional) ----------------
+    ("bh-01", "case_blue_horses_dusk", "Auction catalogue entry, lot 27", "2003", FICTION, "neutral_background",
+     "Evening sale of modern art, November 2003, lot 27. Heinrich Moll, Blue Horses at Dusk, 1914, oil on canvas, signed lower "
+     "right. Provenance: Werner Jaeger collection, Krefeld, acquired directly from the artist; by descent to the present owner. "
+     "The stretcher bears a label of the Galerie Sturmhaus, Dusseldorf. Sold for a record price for the artist."),
+    ("bh-02", "case_blue_horses_dusk", "Heinrich Moll catalogue raisonne, entry 1914/12", "1968", FICTION, "red_herring",
+     "Catalogue raisonne of Heinrich Moll, 1968, entry 1914/12: 'Blue Horses at Dusk. Oil on canvas. Listed in the artist's "
+     "own handlist of 1914. Whereabouts unknown, presumed lost; no photograph exists.' The entry was quoted in the 2003 "
+     "catalogue as confirming the painting's existence."),
+    ("bh-03", "case_blue_horses_dusk", "Galerie Sturmhaus stock books: search result", "2012", FICTION, "supports_forged",
+     "Letter from the archive holding the surviving Galerie Sturmhaus stock books, 2012. The books for 1912-1920 survive "
+     "complete and record no painting by Moll with horses. The archive adds that the label on the stretcher differs in typeface "
+     "and paper from every authenticated Sturmhaus label in its collection."),
+    ("bh-04", "case_blue_horses_dusk", "Letter from the consignor", "2003", FICTION, "neutral_background",
+     "Letter from the consignor to the auction house, 2003. He writes that his grandfather Werner Jaeger bought the painting "
+     "from Moll in 1914 and kept it hidden through two wars. He has no receipt, photograph or correspondence, explaining that "
+     "family papers were lost in 1943. He has sold several other works 'from the Jaeger collection' since 1995."),
+    ("bh-05", "case_blue_horses_dusk", "Expert certificate", "2003", FICTION, "red_herring",
+     "Certificate issued in 2003 by a specialist in German expressionism: 'Blue Horses at Dusk is an authentic and important "
+     "work by Heinrich Moll, entirely characteristic of his palette in 1914.' The certificate is based on photographs and one "
+     "viewing; no technical analysis was commissioned before the sale."),
+    ("bh-06", "case_blue_horses_dusk", "Heinrich Moll: life and works", "1990", FICTION, "neutral_background",
+     "Reference entry. Heinrich Moll (1880-1916), German expressionist painter of animals in non-naturalistic colour, killed "
+     "at Verdun in March 1916. His productive years were 1910-1914; after August 1914 he was at the front and painted almost "
+     "nothing. Many works listed in his 1914 handlist are lost."),
+
+    # ---------------- The Starry Night (public record, summarised) ----------------
+    ("sn-01", "case_starry_night", "Letter to Theo, Saint-Remy, June 1889", "1889", "Public record (summary)", "supports_authentic",
+     "In a letter to his brother Theo written at the Saint-Remy asylum around 2 June 1889, Vincent van Gogh wrote: 'This "
+     "morning I saw the countryside from my window a long time before sunrise, with nothing but the morning star, which looked "
+     "very big.' Letters from the following weeks mention a new study of a starry sky."),
+    ("sn-02", "case_starry_night", "Provenance summary", "1941", "Public record (summary)", "supports_authentic",
+     "After the artist's death the painting passed to Johanna van Gogh-Bonger, who sold it in 1900. It went through private "
+     "collections in France and the Netherlands, was acquired by a Rotterdam collector in 1906, and was sold through a Paris "
+     "and New York dealer in 1938. It entered a New York museum in 1941 through an exchange funded by a bequest."),
+    ("sn-03", "case_starry_night", "Asylum record, Saint-Paul-de-Mausole", "1889", "Public record (summary)", "neutral_background",
+     "Vincent van Gogh was admitted to the asylum of Saint-Paul-de-Mausole at Saint-Remy-de-Provence on 8 May 1889 and left in "
+     "May 1890. He was given a second room as a studio. The view east from his bedroom window over a walled wheat field towards "
+     "the hills appears in many of his paintings from that year."),
+    ("sn-04", "case_starry_night", "Anonymous letter to the museum", "1998", FICTION, "red_herring",
+     "Anonymous typed letter received in 1998 claiming that 'the real Starry Night was copied in Rotterdam around 1906 and the "
+     "copy is the one you own'. The letter names no copyist and gives no evidence. The museum logged it with other unsolicited "
+     "claims; no follow-up is recorded."),
+]
+
+
+def main(out):
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["chunk_id", "doc_id", "case_id", "title", "date", "museum", "url", "evidence_role", "chunk_text"])
+        for doc_id, case, title, date, museum, role, text in ROWS:
+            w.writerow([f"{doc_id}-c1", doc_id, case, title, date, museum, "", role, text])
+    assert len({r[0] for r in ROWS}) == len(ROWS)
+    print(f"wrote {out} ({len(ROWS)} documents)")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "data/archive_corpus.csv")

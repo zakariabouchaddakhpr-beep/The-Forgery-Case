@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Forgery Case</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --desk: #2a1c12; --desk2: #3d2918;
+    --manila: #d8b878; --paper: #f4ead2; --paper2: #e9d9b4; --card: #fbf6ea;
+    --ink: #2b2118; --muted: #6a5640; --line: rgba(74, 52, 30, .3);
+    --red: #a3271c; --stamp: #e0564a; --green: #2e6a3a;
+    --type: "Special Elite", "Courier New", monospace;
+    --serif: "Libre Baskerville", Georgia, "Times New Roman", serif;
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .22 0 0 0 0 .12 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; color: var(--ink); font: 14px/1.6 var(--serif); background-color: var(--desk);
+         background-image:  /* wooden desk */
+           repeating-linear-gradient(91deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 9px),
+           repeating-linear-gradient(89deg, rgba(0, 0, 0, .14) 0 1px, transparent 1px 27px),
+           radial-gradient(ellipse at 30% 15%, #4b3220, var(--desk) 70%); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  h1, h2, h3 { font-family: var(--type); font-weight: normal; margin: 0; }
+  :focus-visible { outline: 2px dashed var(--red); outline-offset: 2px; }
+  .banner { background: #16100b; color: #e9d9b0; text-align: center; font: 12px var(--type); letter-spacing: .12em;
+            padding: 6px 16px; text-transform: uppercase; border-bottom: 4px solid;
+            border-image: repeating-linear-gradient(45deg, #c9a43a 0 10px, #16100b 10px 20px) 4; }
+  .hidden { display: none !important; }
+  /* desk lamp: a warm pool of light from above, the edges of the desk fall into shadow (decoration only, never blocks clicks) */
+  body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+                background: radial-gradient(ellipse 70% 55% at 50% 8%, rgba(255, 196, 110, .13), transparent 70%),
+                            radial-gradient(ellipse 120% 95% at 50% 40%, transparent 55%, rgba(8, 4, 1, .5) 100%); }
+
+  /* case picker: folders on the desk */
+  #picker { max-width: 1100px; margin: 0 auto; padding: 48px 16px; }
+  #picker h1 { font-size: 46px; color: var(--paper); }
+  #picker h1::before { content: 'Confidential'; display: block; width: max-content; margin-bottom: 14px; padding: 2px 10px;
+                       font-size: 14px; letter-spacing: .3em; text-transform: uppercase; color: var(--stamp);
+                       border: 2px solid var(--stamp); transform: rotate(-3deg); }
+  #picker > p { color: #dccdaa; max-width: 640px; }
+  .cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 36px 28px; margin-top: 48px; }
+  .case-card { position: relative; background: var(--manila); color: var(--ink); text-align: left; border: 0; padding: 14px;
+               border-radius: 0 6px 6px 6px; box-shadow: 0 10px 24px rgba(0, 0, 0, .45); transform: rotate(-1.2deg);
+               transition: transform .2s, box-shadow .2s; }
+  .case-card:nth-child(2) { transform: rotate(.9deg); }
+  .case-card:nth-child(3) { transform: rotate(-.4deg); }
+  .case-card::before { content: attr(data-tab); position: absolute; left: 0; top: -20px; height: 20px; padding: 3px 14px 0;
+                       background: var(--manila); border-radius: 6px 6px 0 0; font: 11px var(--type); letter-spacing: .12em; }
+  .case-card:hover, .case-card:focus-visible { transform: rotate(0) translateY(-4px); box-shadow: 0 16px 32px rgba(0, 0, 0, .55); }
+  .case-card img { width: 100%; height: 190px; object-fit: cover; display: block; border: 8px solid var(--card);
+                   box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+  .case-card div { padding: 14px 4px 2px; }
+  .case-card h3 { font-size: 21px; }
+  .case-card p { color: var(--muted); margin: 6px 0 0; font-size: 13px; }
+
+  /* game: evidence folder (left) and case notes (right) */
+  #game { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; padding: 32px 22px 18px; height: calc(100vh - 34px); }
+  @media (max-width: 900px) { #game { grid-template-columns: minmax(0, 1fr); height: auto; padding: 30px 10px 12px; gap: 34px; } }
+  .left { position: relative; background: var(--manila); border-radius: 0 6px 6px 6px; box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
+          display: flex; flex-direction: column; min-height: 0; }
+  .left::before { content: 'Evidence'; position: absolute; left: 0; top: -22px; height: 22px; padding: 4px 18px 0; background: var(--manila);
+                  border-radius: 6px 6px 0 0; font: 11px var(--type); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+  .topbar { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
+  .topbar h2 { font-size: 22px; flex: 1; min-width: 200px; }
+  #title::before { content: 'Case file'; display: block; font-size: 11px; letter-spacing: .25em; text-transform: uppercase; color: var(--red); }
+  .clock { text-align: center; font: 12px var(--type); color: var(--muted); background: var(--card); padding: 4px 12px 7px;
+           border-top: 7px solid var(--red); box-shadow: 0 2px 4px rgba(0, 0, 0, .25); }
+  .clock b { color: var(--ink); font-size: 17px; font-weight: normal; }
+  .pips { display: flex; gap: 3px; margin-top: 4px; justify-content: center; }
+  .pip { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--muted); }
+  .pip.used { background: var(--red); border-color: var(--red); }
+  .viewer { position: relative; flex: 1; min-height: 260px; display: flex; align-items: center; justify-content: center; padding: 18px; overflow: hidden; }
+  .viewer::after { content: ''; position: absolute; top: 6px; left: 30px; width: 14px; height: 42px; border: 3px solid #a8a8a8;
+                   border-radius: 8px; box-shadow: 1px 1px 2px rgba(0, 0, 0, .4); pointer-events: none; z-index: 2; }  /* paper clip */
+  .viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  #plateImg { outline: 8px solid var(--card); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }  /* outline, not border: keeps the image rect exact for place() */
+  .region { position: absolute; border: 2px dashed var(--red); background: rgba(163, 39, 28, .1); pointer-events: none; }
+  .torch { position: absolute; pointer-events: none; --x: -999px; --y: -999px;
+           -webkit-mask-image: radial-gradient(circle 110px at var(--x) var(--y), #000 60%, transparent 100%);
+                   mask-image: radial-gradient(circle 110px at var(--x) var(--y), #000 60%, transparent 100%); }
+  #foundLayer { position: absolute; inset: 0; pointer-events: none; }
+  .found { position: absolute; border: 3px solid var(--stamp); border-radius: 52% 46% 55% 44% / 47% 55% 45% 53%;
+           transform: rotate(-8deg); box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }  /* red pencil ring */
+  .plates { display: flex; gap: 4px; padding: 10px 16px 0; flex-wrap: wrap; align-items: flex-end; border-top: 1px dashed var(--line); }
+  .plates .hint { flex-basis: 100%; margin: 0; max-width: none; text-align: left; font-size: 12px; padding: 6px 0 4px; }
+  .chip { background: var(--paper2); border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0; color: var(--ink);
+          padding: 5px 9px 4px; font: 13px var(--type); }
+  .chip:hover { background: var(--card); }
+  .chip.on { background: var(--card); color: var(--red); box-shadow: inset 0 3px 0 var(--red); }
+  #back, #musicBtn { border: 1px solid var(--line); border-radius: 4px; }
+  #musicBtn[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+  .chip.torchbtn.uv { margin-left: 8px; }
+  @media (max-width: 900px) { .log { padding-left: 40px; background-position: -14px 0; } }
+  .chip.torchbtn::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%;
+                           background: #7b4bd6; box-shadow: 0 0 6px #7b4bd6; }
+  .chip.torchbtn.xray::before { background: #6f9fbf; box-shadow: 0 0 6px #6f9fbf; }
+  .brief { margin: 0 16px 16px; padding: 0 14px; font-size: 13px; line-height: 22px; max-height: 30vh; overflow: auto; background-color: var(--card);
+           background-image: repeating-linear-gradient(transparent 0 21px, rgba(80, 110, 160, .2) 21px 22px); box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
+  .brief b { font: 13px var(--type); color: var(--red); }
+
+  .right { position: relative; display: flex; flex-direction: column; min-height: 0; background: var(--paper); border-radius: 0 6px 6px 6px;
+           box-shadow: 0 12px 30px rgba(0, 0, 0, .5); }
+  .right::before { content: 'Case notes'; position: absolute; left: 0; top: -22px; height: 22px; padding: 4px 18px 0; background: var(--paper2);
+                   border-radius: 6px 6px 0 0; font: 11px var(--type); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+  /* one colour per expert, used by the panel strip and the answer cards */
+  .x-archivist { --x: #2f4f7a; } .x-curator { --x: #2e6a3a; } .x-restorer { --x: #9a6a14; } .x-scientist { --x: #a3271c; }
+  .panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px 16px; background: var(--paper2);
+           border-bottom: 1px dashed var(--line); border-radius: 0 6px 0 0; }
+  .xcard { display: flex; align-items: center; gap: 8px; min-width: 0; background: var(--card); border-top: 4px solid var(--x); padding: 6px 8px;
+           box-shadow: 0 1px 3px rgba(0, 0, 0, .2); transition: transform .25s, box-shadow .25s; }
+  .xcard svg { flex: none; width: 22px; height: 22px; color: var(--x); }
+  .xcard b { display: block; font: 13px var(--type); color: var(--ink); }
+  .xcard small { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xcard.on { transform: translateY(-3px) rotate(-1deg); box-shadow: 0 6px 12px rgba(0, 0, 0, .3), inset 0 0 0 2px var(--x); }
+  .panel.busy .xcard { animation: think 1.2s ease-in-out infinite; }
+  .panel.busy .xcard:nth-child(2) { animation-delay: .15s; } .panel.busy .xcard:nth-child(3) { animation-delay: .3s; }
+  .panel.busy .xcard:nth-child(4) { animation-delay: .45s; }
+  @keyframes think { 50% { transform: translateY(-3px); opacity: .65; } }
+  @media (max-width: 560px) { .xcard { flex-direction: column; gap: 2px; text-align: center; padding: 6px 4px; } .xcard small { display: none; } }
+  .log { flex: 1; overflow-y: auto; padding: 18px 18px 18px 58px; display: flex; flex-direction: column; gap: 16px; min-height: 240px;
+         background-image: linear-gradient(90deg, transparent 44px, rgba(163, 39, 28, .4) 44px 45px, transparent 45px); }  /* notebook margin */
+  .msg { max-width: 92%; }
+  .msg.player { align-self: flex-end; background: #fff3a8; padding: 8px 12px; font: 14px var(--type); box-shadow: 0 2px 4px rgba(0, 0, 0, .2); transform: rotate(.6deg); }
+  .msg.agent { align-self: flex-start; position: relative; background: var(--card); padding: 12px 14px; box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+               border-left: 4px solid var(--x, var(--line)); }
+  .msg.agent .who { display: flex; align-items: center; gap: 6px; color: var(--x, var(--red)); }
+  .msg.agent .who svg { width: 16px; height: 16px; }
+  .route { display: inline-block; max-width: 100%; margin: 0 0 10px; padding: 4px 10px; background: #fffdf6; border: 1px dashed var(--line);
+           font-size: 12px; color: var(--muted); transform: rotate(-.8deg); box-shadow: 1px 1px 2px rgba(0, 0, 0, .12); }
+  .route b { font: 12px var(--type); color: var(--x, var(--ink)); font-weight: normal; margin-right: 4px; }
+  .msg.typing { color: var(--muted); font: 14px var(--type); }
+  .dots::after { content: ''; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+  @media (prefers-reduced-motion: reduce) { .panel.busy .xcard, .dots::after { animation: none; } .dots::after { content: '...'; } }
+  .msg.agent.err { color: var(--muted); border-left: 3px solid var(--red); }
+  .msg.agent.pinned::after { content: ''; position: absolute; top: -7px; right: 14px; width: 15px; height: 15px; border-radius: 50%;
+                             background: radial-gradient(circle at 35% 35%, #ff8a7a, var(--red) 60%, #5a120c); box-shadow: 1px 2px 3px rgba(0, 0, 0, .4); }  /* pushpin */
+  .who { font: 11px var(--type); letter-spacing: .12em; text-transform: uppercase; color: var(--red); margin-bottom: 4px; }
+  .msg.player .who { color: var(--muted); }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .meta ul { margin: 4px 0 0; padding-left: 18px; }
+  .pin { margin-top: 8px; border: 0; background: var(--paper2); color: var(--ink); font: 12px var(--type); padding: 4px 12px 4px 18px;
+         clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); }  /* luggage-tag shape */
+  .pin:hover { background: var(--manila); }
+  .pin.on { background: var(--red); color: var(--card); }
+  .composer { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px dashed var(--line); background: var(--paper2); }
+  .composer textarea { flex: 1; resize: none; height: 46px; background: var(--card); color: var(--ink); border: 1px solid var(--line); padding: 8px 10px; font: 14px var(--type); }
+  .composer textarea:focus { outline: 2px solid var(--red); }
+  .btn { background: var(--ink); color: var(--paper); border: 0; padding: 0 18px; font: 15px var(--type); letter-spacing: .05em; }
+  .btn:hover:not(:disabled) { background: var(--red); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.ghost { background: none; color: var(--red); border: 2px solid var(--red); padding: 6px 16px; text-transform: uppercase; letter-spacing: .12em; transform: rotate(-2deg); }
+  .btn.ghost:hover { background: var(--red); color: var(--card); }
+  .board { border-top: 1px dashed var(--line); padding: 10px 16px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--paper2); }
+  .cork { flex: 1; min-width: 0; min-height: 46px; display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 8px 10px;
+          background: #b4875a radial-gradient(rgba(60, 30, 10, .35) 1px, transparent 1.5px) 0 0 / 7px 7px; border-radius: 3px;
+          box-shadow: inset 0 1px 5px rgba(0, 0, 0, .45); }
+  .cork > span { color: #fbf0d6; font: 12px var(--type); text-shadow: 0 1px 1px rgba(0, 0, 0, .5); }
+  .evpin { position: relative; flex: none; width: 168px; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; border: 0; border-top: 3px solid var(--x); padding: 6px 9px 5px; text-align: left;
+           background-color: var(--card); font-size: 11px; line-height: 1.35; color: var(--ink); box-shadow: 0 2px 4px rgba(0, 0, 0, .35);
+           rotate: -1.5deg; transition: rotate .15s, translate .15s; }
+  .evpin:nth-child(even) { rotate: 1.2deg; }
+  .evpin:hover { rotate: 0deg; translate: 0 -2px; }
+  .evpin::before { content: ''; position: absolute; top: -7px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%;
+                   background: radial-gradient(circle at 35% 35%, #ff8a7a, var(--red) 60%, #5a120c); box-shadow: 1px 1px 2px rgba(0, 0, 0, .4); }
+  .evpin b { display: block; font: 10px var(--type); letter-spacing: .1em; text-transform: uppercase; color: var(--x); }
+  .msg.agent.flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { 0%, 40% { box-shadow: 0 0 0 3px var(--x), 0 2px 6px rgba(0, 0, 0, .18); } }
+  .hint { color: var(--muted); font: 14px var(--type); text-align: center; margin: auto; max-width: 340px; }
+
+  /* verdict: report form + rubber stamp */
+  dialog { background: var(--paper); color: var(--ink); border: 0; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); max-width: 640px; width: calc(100% - 32px); padding: 28px; }
+  dialog::backdrop { background: rgba(20, 12, 6, .75); }
+  dialog h2 { font-size: 26px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+  .choices { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+  .letterhead { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 3px double var(--ink); }
+  .letterhead svg { flex: none; width: 40px; height: 40px; color: var(--red); }
+  .letterhead b { display: block; font: 17px var(--type); letter-spacing: .14em; text-transform: uppercase; }
+  .letterhead small { font: 11px var(--type); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  #verdictForm h2 { border: 0; padding: 0; margin: 0 0 4px; }
+  .field { font: 12px var(--type); letter-spacing: .14em; text-transform: uppercase; color: var(--red); margin: 18px 0 8px; }
+  .field small { color: var(--muted); letter-spacing: .05em; text-transform: none; }
+  .choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; }
+  .vbox { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line);
+          font: 16px var(--type); text-align: left; transition: background .15s; }
+  .vbox:hover { background: #fff; }
+  .vbox i { flex: none; position: relative; width: 22px; height: 22px; border: 2px solid var(--ink); }
+  .vbox.on { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+  .vbox.on i::after { content: '✓'; position: absolute; left: 1px; top: -14px; font: 30px var(--serif); color: var(--red); rotate: 8deg; }  /* pen tick */
+  .ev { max-height: 230px; overflow: auto; display: grid; gap: 8px; padding: 2px; }
+  .ev label { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; background-color: var(--card); border-left: 4px solid var(--x, var(--line));
+              box-shadow: 0 1px 3px rgba(0, 0, 0, .18); font-size: 13px; cursor: pointer; }
+  .ev label b { display: block; font: 10px var(--type); letter-spacing: .12em; text-transform: uppercase; color: var(--x); }
+  .ev label:has(input:not(:checked)) { opacity: .5; }
+  .ev input { flex: none; appearance: none; width: 18px; height: 18px; margin: 2px 0 0; border: 2px solid var(--ink); background: var(--card); cursor: pointer; }
+  .ev input:checked { background: var(--ink); box-shadow: inset 0 0 0 3px var(--card); }
+  dialog textarea { width: 100%; height: 88px; color: var(--ink); border: 1px solid var(--line); padding: 0 10px; font: 14px/22px var(--type); resize: vertical;
+                    background: var(--card) repeating-linear-gradient(transparent 0 21px, rgba(80, 110, 160, .25) 21px 22px); background-attachment: local; }
+  .sign { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-top: 18px; }
+  .sign span { flex: 1; min-width: 200px; font: 12px var(--type); color: var(--muted); border-top: 1px solid var(--ink); padding-top: 4px; }
+  @media (max-width: 560px) { .choices { grid-template-columns: minmax(0, 1fr); } }
+  .result { font-size: 15px; }
+  .stamp { display: inline-block; margin: 6px 0 14px; padding: 6px 18px; font: 30px var(--type); text-transform: uppercase; letter-spacing: .1em;
+           border: 5px double currentColor; transform: rotate(-8deg); opacity: .92; animation: stamp .45s cubic-bezier(.2, 1.6, .4, 1) both; }
+  @keyframes stamp { from { transform: scale(2.4) rotate(-14deg); opacity: 0; } to { transform: scale(1) rotate(-8deg); opacity: .92; } }
+  .ok { color: var(--green); } .bad { color: var(--red); } .neutral { color: #5f5a52; }
+
+  /* verdict scene: your stamp lands, the sealed file opens, the judgement thumps on */
+  /* full-page rubber stamp: the tool comes down, slams, lifts away and leaves a huge imprint (top layer via popover) */
+  #stampScene { position: fixed; inset: 0; width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0;
+                border: 0; background: transparent; overflow: hidden; pointer-events: none; }
+  #stampScene:not(.on) { display: none; }
+  #stampScene::backdrop { background: transparent; }
+  #stampScene.on { background: rgba(20, 12, 6, .25); }
+  #stampScene.out { animation: sceneOut .45s ease-in forwards; }
+  @keyframes sceneOut { to { opacity: 0; } }
+  #stampScene .tool { position: absolute; left: 50%; top: 52%; width: min(60vw, 760px); translate: -50% -100%; transform-origin: 50% 100%;
+                      animation: stampDown 1.7s cubic-bezier(.5, 0, .5, 1) forwards; filter: drop-shadow(0 30px 30px rgba(0, 0, 0, .55)); }
+  #stampScene .tool svg { display: block; width: 100%; height: auto; }
+  @keyframes stampDown {
+    0%   { transform: translateY(-120vh) rotate(-22deg); }
+    40%  { transform: translateY(-16vh) rotate(-10deg); }   /* lines up above the page */
+    52%  { transform: translateY(-16vh) rotate(-10deg); }
+    58%  { transform: translateY(0) rotate(-10deg) scaleY(.93); animation-timing-function: ease-out; }  /* slam */
+    74%  { transform: translateY(0) rotate(-10deg) scaleY(1); }   /* press */
+    100% { transform: translateY(-130vh) rotate(-24deg); }   /* lift away */
+  }
+  #stampScene .imprint { position: absolute; left: 50%; top: 52%; translate: -50% -50%; rotate: -10deg; white-space: nowrap; opacity: 0;
+                         font-family: var(--type); text-transform: uppercase; letter-spacing: .08em; line-height: 1;
+                         padding: .12em .35em; border: .09em double currentColor; border-radius: .08em; filter: url(#ink); }
+  #stampScene .imprint.hit { opacity: .9; animation: inkIn .25s ease-out; }
+  @keyframes inkIn { from { opacity: 0; transform: scale(1.04); } }
+  #stampScene.shake .imprint, body.shake #game { animation: shake .35s; }
+  dialog.shake { animation: shake .35s; }
+  @keyframes shake { 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-3px, 2px); } 80% { transform: translate(2px, -1px); } }
+  .mute { position: absolute; top: 10px; right: 12px; background: none; border: 0; color: var(--muted); font: 12px var(--type); padding: 4px; }
+  .envelope { position: relative; background: var(--manila); padding: 30px 18px 18px; margin: 10px 0 16px; box-shadow: inset 0 0 0 1px var(--line), 0 3px 8px rgba(0, 0, 0, .2); }
+  .envelope .label { font: 14px var(--type); letter-spacing: .25em; text-transform: uppercase; color: var(--muted); text-align: center; padding: 20px 0; }
+  .seal { position: absolute; left: 50%; top: -18px; width: 56px; height: 56px; margin-left: -28px; border-radius: 50%; display: grid; place-items: center;
+          background: radial-gradient(circle at 35% 35%, #d0473a, #8e1d14 70%); color: #f3c9b9; font: 17px var(--type);
+          box-shadow: 0 2px 5px rgba(0, 0, 0, .45), inset 0 0 0 4px rgba(0, 0, 0, .15); }  /* wax seal */
+  .envelope.open .seal { animation: crack .6s ease-in forwards; }
+  @keyframes crack { 30% { transform: rotate(-14deg) scale(1.12); } to { transform: translateY(26px) rotate(30deg) scale(.5); opacity: 0; } }
+  .report { display: none; }
+  .envelope.open .label { display: none; }
+  .envelope.open .report { display: block; animation: unfold .6s ease-out both; padding: 4px 14px 12px; line-height: 22px; background-color: var(--card);
+                           background-image: repeating-linear-gradient(transparent 0 21px, rgba(80, 110, 160, .2) 21px 22px); }
+  @keyframes unfold { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font: 12px var(--type); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-top: 8px; }
+  .vs b { display: block; min-height: 30px; color: var(--ink); font: 22px var(--type); letter-spacing: .08em; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+  .tag { background: var(--paper2); font: 12px var(--type); padding: 3px 12px 3px 18px; clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); }
+  .tag.missed { opacity: .55; }
+  .judgement { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 6px 0 26px; padding: 0 8px; }
+  .judgement .stamp { font-size: 34px; margin: 0; }
+  #verdictResult .actions { display: flex; justify-content: flex-end; }
+  .score { position: relative; font: 44px var(--type); padding: 2px 22px; color: var(--ink); animation: fadeIn .4s .3s both; }
+  .score small { font-size: 16px; color: var(--muted); }
+  .score::after { content: ''; position: absolute; inset: -6px -4px; border: 3px solid var(--stamp); transform: rotate(-5deg);
+                  border-radius: 52% 46% 55% 44% / 47% 55% 45% 53%; }  /* red pencil ring */
+  @keyframes fadeIn { from { opacity: 0; } }
+  .case-stamp { position: absolute; right: 14px; top: 34px; z-index: 1; font: 16px var(--type); letter-spacing: .12em; text-transform: uppercase;
+                border: 3px double currentColor; padding: 2px 10px; transform: rotate(-9deg); background: rgba(251, 246, 234, .88); }
+  #verdictResult.instant *, #verdictResult.instant .envelope.open .seal { animation: none !important; }
+  #verdictResult.instant .seal { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .stamp, dialog.shake, .envelope.open .seal, .envelope.open .report, .score, #stampScene .imprint.hit, #stampScene.out { animation: none; }
+    #stampScene .tool { display: none; }
+    .envelope.open .seal { display: none; } .case-card { transition: none; }
+  }
+  /* paper grain last, so the panels' own background shorthands do not reset it */
+  .left, .right, .msg.agent, .case-card, dialog, .xcard, .evpin, .ev label { background-image: var(--grain); }
+</style>
+</head>
+<body>
+<div class="banner">AI-generated, fictional investigation · technical plates are simulated · no real attribution is claimed</div>
+
+<!-- case picker -->
+<section id="picker">
+  <h1>The Forgery Case</h1>
+  <p>You are a junior authentication analyst. A painting is about to go on display and you have three days to decide
+     whether it is authentic or a forgery, and to defend your answer with evidence. Every question you put to an
+     expert costs time.</p>
+  <div class="cases" id="cases"></div>
+</section>
+
+<!-- game -->
+<section id="game" class="hidden">
+  <div class="left">
+    <div class="topbar">
+      <button class="chip" id="back" title="Back to case list">&larr; Cases</button>
+      <button class="chip" id="musicBtn" type="button" title="Background music"></button>
+      <h2 id="title"></h2>
+      <div class="clock"><b id="day">Day 1</b> of 3<div class="pips" id="pips"></div></div>
+    </div>
+    <div class="viewer" id="viewer"><img id="plateImg" alt=""><img id="torchImg" class="torch" alt="" hidden><div id="foundLayer"></div><div class="region" id="regionBox" hidden></div></div>
+    <div class="plates" id="plates"></div>
+    <div class="brief" id="brief"></div>
+  </div>
+
+  <div class="right">
+    <div class="panel" id="panel" aria-label="The experts"></div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="composer">
+      <textarea id="input" placeholder="Ask anything, the right expert will answer..." maxlength="1000"></textarea>
+      <button class="btn" id="send">Ask</button>
+    </div>
+    <div class="board">
+      <div class="cork" id="pinned" aria-label="Pinned evidence"></div>
+      <button class="btn ghost" id="verdictBtn">File verdict</button>
+    </div>
+  </div>
+</section>
+
+<dialog id="verdictDlg">
+  <div id="verdictForm">
+    <div class="letterhead">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="7"/><path d="M12 7.5l1.3 2.8 3 .3-2.3 2 .7 3-2.7-1.6-2.7 1.6.7-3-2.3-2 3-.3z"/></svg>
+      <div><b>Board of Authentication</b><small id="repMeta">Report of findings</small></div>
+    </div>
+    <h2>File your verdict</h2>
+    <p class="meta">The decision is yours alone; no expert will make it for you.</p>
+    <div class="field">1 · Finding</div>
+    <div class="choices" id="verdictChoices"></div>
+    <div class="field">2 · Evidence cited <small>(at least three; untick to leave one out)</small></div>
+    <div class="ev" id="evidenceList"></div>
+    <div class="field">3 · Reasoning <small>(optional)</small></div>
+    <textarea id="reasoning" aria-label="Your reasoning" maxlength="2000"></textarea>
+    <div class="sign">
+      <span>Analyst's signature · signed on filing</span>
+      <div style="display:flex; gap:8px">
+        <button class="btn ghost" id="cancelVerdict">Keep investigating</button>
+        <button class="btn" id="submitVerdict" style="padding:8px 18px">Submit</button>
+      </div>
+    </div>
+    <p class="bad" id="verdictErr"></p>
+  </div>
+  <div id="verdictResult" class="result hidden"></div>
+  <button class="mute" id="muteBtn" type="button"></button>  <!-- last: the dialog's first focus goes to the content -->
+</dialog>
+<div id="stampScene" popover="manual" aria-hidden="true"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- worn rubber: speckles the imprint so it reads as ink, not text -->
+  <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="4" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.55" result="holes"/>
+    <feComposite in="SourceGraphic" in2="holes" operator="in"/></filter>
+</svg>
+
+<script>
+const API = location.origin + '/webhook';
+const ACTIONS_PER_DAY = 4, DAYS = 3;
+
+const CASES = {
+  case_starry_night: {
+    title: 'The Starry Night', blurb: 'Oil on canvas, attributed to Vincent van Gogh, 1889.',
+    brief: '<b>Attribution claim:</b> Vincent van Gogh, painted at the Saint-Rémy asylum, June 1889. <b>Provenance note:</b> passed through the artist\'s family and private collections before entering a New York museum collection in 1941. <b>Your brief:</b> the canvas travels for a major loan exhibition. Confirm the attribution holds before it is hung.'
+  },
+  case_widows_supper: {
+    title: "The Widow's Supper", blurb: 'Oil on canvas, attributed to Cornelis van Leyden, c. 1650–1700.',
+    brief: '<b>Attribution claim:</b> Cornelis van Leyden, Dutch, second half of the 17th century. <b>Provenance note:</b> surfaced in 1952 from an old family collection and was publicly endorsed by a leading period specialist before its sale. <b>Your brief:</b> the museum has just acquired it at a record price. Is it what the specialist said it is?'
+  },
+  case_blue_horses_dusk: {
+    title: 'Blue Horses at Dusk', blurb: 'Oil on canvas, attributed to Heinrich Moll, 1914.',
+    brief: '<b>Attribution claim:</b> Heinrich Moll, expressionist, dated 1914, shortly before the painter\'s death. <b>Provenance note:</b> sold in 2003 from a private collection, with a label attributed to a pre-war gallery on the stretcher. <b>Your brief:</b> the work anchors next season\'s show. Check it before the catalogue goes to print.'
+  }
+};
+const EXPERTS = {
+  auto:      { name: 'Investigation', role: 'auto-routed', hint: 'Ask anything. The orchestrator sends your question to the expert who can answer it.' },
+  archivist: { name: 'Archivist', role: 'documents', hint: 'Ask about sales, provenance, letters and records. The Archivist only answers from documents.' },
+  curator:   { name: 'Curator',   role: 'style · reasoning', hint: 'Share your theory. The Curator stress-tests it against what the others found.' },
+  restorer:  { name: 'Restorer',  role: 'technical plates', hint: 'Shine the UV or X-ray torch over the painting, or pick Macro or Raking light, then ask what is visible.' },
+  scientist: { name: 'Scientist', role: 'materials · dates', hint: 'Ask about paint, pigments and dates. The Scientist computes whether the dates can all be true.' }
+};
+const ICONS = {  // expert badges: scroll, loupe, brush, flask (static, authored markup)
+  archivist: '<path d="M8 4h10a2 2 0 0 1 0 4h-2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2h10"/><path d="M8 4a2 2 0 0 0-2 2v10M10 9h4M10 12h4"/>',
+  curator: '<circle cx="10" cy="10" r="6"/><path d="M14.5 14.5 20 20M7.5 8.5a3 3 0 0 1 2-1.5"/>',
+  restorer: '<path d="M14 4l6 6-8 8-6-6z"/><path d="M6 12l-2 6 6-2M12 6l6 6"/>',
+  scientist: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3M7.5 15h9"/>'
+};
+const icon = k => ICONS[k] ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>` : '';
+const PLATES = { photo: 'Photograph', xray: 'X-ray', uv: 'UV', macro: 'Macro', raking_light: 'Raking light' };
+const TORCHES = { uv: 'UV torch', xray: 'X-ray torch' };
+// Clues that tools/make_plates.py paints into the plates (fixed seed), as fractions of the plate; r is in plate widths.
+const CLUES = {
+  case_starry_night: [
+    { light: 'uv', x: .720, y: .121, r: .04, label: 'Dark retouching patch' },
+    { light: 'uv', x: .469, y: .519, r: .04, label: 'Dark retouching patch' },
+    { light: 'uv', x: .102, y: .422, r: .04, label: 'Dark retouching patch' },
+    { light: 'uv', x: .212, y: .110, r: .04, label: 'Dark retouching patch' }],
+  case_widows_supper: [
+    { light: 'xray', x: .24, y: .55, r: .15, label: 'Large oval form under the paint' },
+    { light: 'xray', x: .54, y: .15, r: .08, label: 'Edge of an earlier composition' }],
+  case_blue_horses_dusk: [
+    { light: 'uv', x: .07, y: .40, r: .06, label: 'Tree trunk white that absorbs UV' },
+    { light: 'uv', x: .74, y: .35, r: .06, label: 'Tree trunk white that absorbs UV' }]
+};
+console.assert(Object.values(CLUES).flat().every(c => TORCHES[c.light] && [c.x, c.y, c.r].every(n => n > 0 && n < 1)), 'bad clue');
+
+let S = null;          // current game state
+let plate = 'photo';
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const plateUrl = (c, k) => k === 'photo' ? `${API}/plate?case_id=${c}&kind=photo` : `${API}/plate?case_id=${c}&kind=${k}`;
+
+function save() { try { localStorage.setItem('fc:' + S.case_id, JSON.stringify(S)); } catch (e) {} }
+function loadSaved(c) { try { return JSON.parse(localStorage.getItem('fc:' + c)); } catch (e) { return null; } }
+
+/* ---------- picker ---------- */
+const VERDICT_STAMP = { authentic: 'ok', forged: 'bad', inconclusive: 'neutral' };
+function renderPicker() {
+  $('cases').innerHTML = '';
+  for (const [id, c] of Object.entries(CASES)) {
+    const b = el('button', 'case-card');
+    b.dataset.tab = `CASE № 0${$('cases').children.length + 1}`;
+    const img = el('img'); img.src = plateUrl(id, 'photo'); img.alt = c.title;
+    const d = el('div'); d.append(el('h3', null, c.title), el('p', null, c.blurb));
+    const saved = loadSaved(id);
+    if (saved) d.append(el('p', null, saved.result ? 'Verdict filed. Open to review.' : `In progress: ${saved.actions_used} of ${ACTIONS_PER_DAY * DAYS} actions used.`));
+    b.append(img, d);
+    if (saved && saved.result) b.append(el('div', 'case-stamp ' + (VERDICT_STAMP[saved.result.verdict] || 'neutral'), `Closed · ${saved.result.verdict}`));
+    b.onclick = () => openCase(id);
+    $('cases').append(b);
+  }
+}
+renderPicker();
+
+function openCase(id) {
+  S = loadSaved(id) || { case_id: id, session_id: crypto.randomUUID(), actions_used: 0, turns: [], pinned: [], result: null };
+  S.found = S.found || [];  // indexes into CLUES[case]; older saves have none
+  $('picker').classList.add('hidden'); $('game').classList.remove('hidden');
+  $('title').textContent = CASES[id].title;
+  $('brief').innerHTML = CASES[id].brief;   // static, authored text only
+  startMusic();  // opening a folder is a click, so the browser lets sound start here
+  plate = 'photo'; renderPlates(); renderLog(); $('input').placeholder = 'Ask anything, the right expert will answer...'; renderClock(); renderPinned();
+}
+$('back').onclick = () => location.reload();
+
+/* ---------- left: plates ---------- */
+function renderPlates() {
+  $('plates').innerHTML = '';
+  for (const k of ['photo', 'macro', 'raking_light']) {  // UV and X-ray are only seen through the torch
+    const label = PLATES[k];
+    const b = el('button', 'chip' + (k === plate ? ' on' : ''), label);
+    b.onclick = () => { plate = k; renderPlates(); };
+    $('plates').append(b);
+  }
+  if (plate === 'photo') {
+    for (const [k, label] of Object.entries(TORCHES)) {
+      const b = el('button', `chip torchbtn ${k}` + (k === torch ? ' on' : ''), label);
+      b.onclick = () => { torch = torch === k ? null : k; renderPlates(); };
+      $('plates').append(b);
+    }
+    $('plates').append(el('span', 'hint', torch ? 'Hold the torch still over anything that looks wrong.' : 'Switch on a torch to search the painting.'));
+  } else {
+    torch = null;
+    $('plates').append(el('span', 'hint', 'Drag on the plate to mark an area for the Restorer; click to clear.'));
+  }
+  $('plateImg').src = plateUrl(S.case_id, plate);
+  $('plateImg').alt = PLATES[plate];
+  $('plateImg').style.cursor = plate === 'photo' && !torch ? '' : 'crosshair';
+  $('torchImg').hidden = !torch;
+  if (torch) $('torchImg').src = plateUrl(S.case_id, torch);
+  $('foundLayer').hidden = plate !== 'photo';
+  region = null; layout();
+}
+
+// put a node over the shown plate at box [x0, y0, x1, y1] (fractions of the plate)
+function place(node, box) {
+  const a = $('plateImg').getBoundingClientRect(), v = $('viewer').getBoundingClientRect();
+  Object.assign(node.style, {
+    left: a.left - v.left + box[0] * a.width + 'px', top: a.top - v.top + box[1] * a.height + 'px',
+    width: (box[2] - box[0]) * a.width + 'px', height: (box[3] - box[1]) * a.height + 'px' });
+}
+function layout() { drawRegion(); drawFound(); place($('torchImg'), [0, 0, 1, 1]); }
+$('plateImg').addEventListener('load', layout);
+window.addEventListener('resize', layout);
+
+/* ---------- region: drag a box on a technical plate, the Restorer reads that spot first ---------- */
+let region = null, drag = null;  // region = [x0, y0, x1, y1] as fractions of the plate
+function drawRegion() {
+  $('regionBox').hidden = !region;
+  if (region) place($('regionBox'), region);
+}
+function frac(e) {
+  const a = $('plateImg').getBoundingClientRect(), c = n => Math.min(1, Math.max(0, n));
+  return [c((e.clientX - a.left) / a.width), c((e.clientY - a.top) / a.height)];
+}
+$('plateImg').style.touchAction = 'none';  // let a finger drag a box instead of scrolling
+$('plateImg').addEventListener('pointerdown', e => {
+  if (plate === 'photo') return;
+  e.preventDefault(); $('plateImg').setPointerCapture(e.pointerId);
+  drag = frac(e); region = null; drawRegion();
+});
+$('plateImg').addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = frac(e);
+  region = [Math.min(drag[0], p[0]), Math.min(drag[1], p[1]), Math.max(drag[0], p[0]), Math.max(drag[1], p[1])];
+  drawRegion();
+});
+$('plateImg').addEventListener('pointerup', () => {
+  if (region && (region[2] - region[0] < 0.02 || region[3] - region[1] < 0.02)) region = null;  // a click, not a drag
+  drag = null; drawRegion();
+});
+
+/* ---------- torch: shine UV / X-ray on the photograph; a clue held in the beam gets circled and asked about ---------- */
+const BEAM = 110;  // px, radius of the torch beam (same as the .torch mask)
+let torch = null, dwell = null;  // dwell = { i, t }: clue under the beam and its timer
+function clueBox(c) {  // square in pixels, so the circle stays round
+  const k = $('plateImg').naturalWidth / $('plateImg').naturalHeight || 1;
+  return [c.x - c.r, c.y - c.r * k, c.x + c.r, c.y + c.r * k];
+}
+function drawFound() {
+  $('foundLayer').innerHTML = '';
+  for (const i of S.found) {
+    const c = CLUES[S.case_id][i], d = el('div', 'found');
+    d.title = c.label; $('foundLayer').append(d); place(d, clueBox(c));
+  }
+}
+function moveTorch(e) {
+  if (!torch) return;
+  const a = $('plateImg').getBoundingClientRect();
+  $('torchImg').style.setProperty('--x', e.clientX - a.left + 'px');
+  $('torchImg').style.setProperty('--y', e.clientY - a.top + 'px');
+  const [x, y] = frac(e), k = a.height / a.width;
+  const i = CLUES[S.case_id].findIndex((c, i) => c.light === torch && !S.found.includes(i) && Math.hypot(x - c.x, (y - c.y) * k) * a.width < c.r * a.width + BEAM * .6);
+  if (i === (dwell ? dwell.i : -1)) return;
+  if (dwell) clearTimeout(dwell.t);
+  dwell = i < 0 ? null : { i, t: setTimeout(() => foundClue(i), 500) };
+}
+$('plateImg').addEventListener('pointermove', moveTorch);
+$('plateImg').addEventListener('pointerleave', () => {
+  if (dwell) clearTimeout(dwell.t);
+  dwell = null; $('torchImg').style.setProperty('--x', '-999px');
+});
+function foundClue(i) {
+  dwell = null; S.found.push(i); save(); drawFound();
+  if (S.result || S.actions_used >= ACTIONS_PER_DAY * DAYS) return;  // circled, but no time left to ask about it
+  const c = CLUES[S.case_id][i];
+  ask({ image_type: c.light, region: clueBox(c).map(n => Math.min(1, Math.max(0, n))),
+        message: `My ${TORCHES[c.light]} picked something up in the marked area: ${c.label.toLowerCase()}. What is it, and what does it tell us?` });
+}
+
+/* ---------- right: log (the orchestrator picks the expert for each question) ---------- */
+function renderPanel() {  // who is on the case; the last expert to answer is lifted
+  const answered = S.turns.filter(t => t.turn_id), last = answered.length ? answered[answered.length - 1].agent : null;
+  $('panel').innerHTML = '';
+  for (const k of Object.keys(ICONS)) {
+    const n = answered.filter(t => t.agent === k).length;
+    const c = el('div', `xcard x-${k}` + (k === last ? ' on' : ''));
+    c.innerHTML = icon(k);
+    const d = el('div'); d.append(el('b', null, EXPERTS[k].name), el('small', null, n ? `consulted ${n}×` : EXPERTS[k].role));
+    c.append(d); $('panel').append(c);
+  }
+}
+
+function renderLog() {
+  renderPanel();
+  const log = $('log'); log.innerHTML = '';
+  const turns = S.turns;
+  if (!turns.length) log.append(el('p', 'hint', EXPERTS.auto.hint));
+  for (const t of turns) {
+    const p = el('div', 'msg player', t.message);
+    if (t.image_type) p.prepend(el('div', 'who', PLATES[t.image_type] + (t.region ? ' · marked area' : '')));
+    log.append(p);
+    const a = el('div', `msg agent x-${t.agent}` + (t.error ? ' err' : '') + (S.pinned.includes(t.turn_id) ? ' pinned' : ''));
+    if (t.turn_id) a.id = 'turn-' + t.turn_id;
+    if (t.route) {  // the orchestrator's routing slip
+      const r = el('div', 'route'); r.append(el('b', null, `→ Sent to the ${EXPERTS[t.agent].name}`), el('i', null, t.route)); a.append(r);
+    }
+    const who = el('div', 'who'); who.innerHTML = icon(t.agent); who.append(EXPERTS[t.agent].name);
+    a.append(who, el('div', null, t.reply));
+    if (t.sources && t.sources.length) {
+      const m = el('div', 'meta', 'Sources'); const ul = el('ul');
+      t.sources.forEach(s => ul.append(el('li', null, s))); m.append(ul); a.append(m);
+    }
+    if (t.caveats && t.caveats.length) {
+      const m = el('div', 'meta', 'Caveats'); const ul = el('ul');
+      t.caveats.forEach(s => ul.append(el('li', null, s))); m.append(ul); a.append(m);
+    }
+    if (t.turn_id && !S.result) {
+      const on = S.pinned.includes(t.turn_id);
+      const pin = el('button', 'pin' + (on ? ' on' : ''), on ? 'Pinned as evidence' : 'Pin as evidence');
+      pin.onclick = () => { S.pinned = on ? S.pinned.filter(x => x !== t.turn_id) : [...S.pinned, t.turn_id]; save(); renderLog(); renderPinned(); };
+      a.append(pin);
+    }
+    log.append(a);
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderClock() {
+  const total = ACTIONS_PER_DAY * DAYS, used = S.actions_used;
+  $('day').textContent = used >= total ? 'Time is up' : 'Day ' + (Math.floor(used / ACTIONS_PER_DAY) + 1);
+  $('pips').innerHTML = '';
+  for (let i = 0; i < total; i++) $('pips').append(el('span', 'pip' + (i < used ? ' used' : '')));
+  const locked = used >= total || !!S.result;
+  $('send').disabled = locked; $('input').disabled = locked;
+  if (locked) $('input').placeholder = S.result ? 'Verdict filed.' : 'No time left. File your verdict.';
+}
+function renderPinned() {
+  const cork = $('pinned'); cork.innerHTML = '';
+  const pinned = S.turns.filter(t => t.turn_id && S.pinned.includes(t.turn_id));
+  if (!pinned.length) cork.append(el('span', null, 'Pin an expert\'s answer and it lands here, ready to cite in your verdict.'));
+  for (const t of pinned) {  // click a card: jump to that answer in the notes
+    const b = el('button', `evpin x-${t.agent}`); b.title = t.reply;
+    b.append(el('b', null, EXPERTS[t.agent].name), (t.reply.length > 60 ? t.reply.slice(0, 60) + '…' : t.reply));
+    b.onclick = () => { const m = $('turn-' + t.turn_id); if (!m) return;
+      m.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' }); m.classList.remove('flash'); void m.offsetWidth; m.classList.add('flash'); };
+    cork.append(b);
+  }
+  $('verdictBtn').textContent = S.result ? 'See verdict' : 'File verdict';
+}
+
+/* ---------- ask ---------- */
+// auto = { message, image_type, region }: a torch find asks the Restorer itself and pins the answer
+async function ask(auto) {
+  const message = auto ? auto.message : $('input').value.trim();
+  if (!message) return;
+  $('send').disabled = true; $('send').textContent = '...';
+  const agent = auto ? 'restorer' : 'auto', reg = auto ? auto.region : region;
+  // while waiting: the question shows at once, the experts' cards pulse, a note says what is happening
+  renderLog();
+  $('log').append(el('div', 'msg player', message));
+  const wait = el('div', 'msg agent typing'), says = el('span', 'dots', auto ? 'The Restorer is examining the plate' : 'The orchestrator is reading your question');
+  wait.append(says); $('log').append(wait); $('log').scrollTop = $('log').scrollHeight;
+  $('panel').classList.add('busy');
+  const later = setTimeout(() => { if (!auto) says.textContent = 'An expert is working on it'; }, 1500);
+  const body = { session_id: S.session_id, case_id: S.case_id, agent, message };
+  const view = plate === 'photo' ? torch : plate;  // what is on screen; auto sends it in case the Restorer is picked
+  if (agent === 'restorer') body.image_type = auto ? auto.image_type : view;
+  if (agent === 'auto' && view) body.image_type = view;
+  if ((agent === 'restorer' || agent === 'auto') && reg) body.region = reg.map(n => +n.toFixed(3));
+  const turn = { agent, message, image_type: body.image_type, region: body.region };
+  try {
+    const r = await fetch(API + '/turn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({ ok: false, error: `Server answered ${r.status}` }));
+    if (!j.ok) throw new Error(j.error || 'Unknown error');
+    Object.assign(turn, { turn_id: j.turn_id, reply: j.reply, sources: j.sources, caveats: j.caveats });
+    if (agent === 'auto' && EXPERTS[j.agent]) Object.assign(turn, { agent: j.agent, image_type: j.image_type || undefined, route: j.route_reason });
+    S.actions_used = j.actions_used;
+    if (auto) S.pinned.push(j.turn_id); else $('input').value = '';
+  } catch (e) {
+    Object.assign(turn, { error: true, reply: 'No answer: ' + e.message + ' (no time was spent).' });
+  }
+  clearTimeout(later); $('panel').classList.remove('busy');
+  S.turns.push(turn); save();
+  $('send').textContent = 'Ask'; renderLog(); renderClock(); renderPinned();
+}
+$('send').onclick = () => ask();
+$('input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } });
+
+/* ---------- verdict ---------- */
+let choice = null;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pause = (ms, quick) => new Promise(r => setTimeout(r, quick || calm ? 0 : ms));
+
+// stamp "thunk", made in the browser (no sound files): a falling low tone plus a short paper slap
+let audio = null, muted = false;
+try { muted = localStorage.getItem('fc:mute') === '1'; } catch (e) {}
+function thunk(strength = 1) {
+  if (muted) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const t = audio.currentTime, o = audio.createOscillator(), g = audio.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.18);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.7 * strength, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+    const buf = audio.createBuffer(1, Math.floor(audio.sampleRate * 0.06), audio.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const slap = audio.createBufferSource(), sg = audio.createGain();
+    slap.buffer = buf; sg.gain.value = 0.3 * strength;
+    o.connect(g).connect(audio.destination); slap.connect(sg).connect(audio.destination);
+    o.start(t); o.stop(t + 0.3); slap.start(t);
+  } catch (e) {}  // no audio (blocked or unsupported): the scene still plays
+}
+function renderMute() { $('muteBtn').textContent = muted ? 'Sound: off' : 'Sound: on'; $('muteBtn').setAttribute('aria-pressed', String(!muted)); }
+$('muteBtn').onclick = () => { muted = !muted; try { localStorage.setItem('fc:mute', muted ? '1' : '0'); } catch (e) {} renderMute(); muted ? stopMusic() : startMusic(); };
+renderMute();
+
+/* ---------- music: a slow noir ambience made in the browser (no files, no licence): low drone, sparse minor notes, reverb, a faint clock ---------- */
+let music = null, musicOn = true;
+try { musicOn = localStorage.getItem('fc:music') !== '0'; } catch (e) {}
+function startMusic() {
+  if (music || muted || !musicOn || !S) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    audio.resume();
+    const ctx = audio, t0 = ctx.currentTime, out = ctx.createGain();
+    out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(0.45, t0 + 5); out.connect(ctx.destination);  // slow fade-in
+    // reverb: a 4 s decaying noise impulse, the "empty museum at night" room
+    const len = ctx.sampleRate * 4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3; }
+    const verb = ctx.createConvolver(), wet = ctx.createGain(); verb.buffer = ir; wet.gain.value = 0.7; verb.connect(wet).connect(out);
+    // drone: low detuned saws through a lowpass that breathes over ~20 s
+    const lp = ctx.createBiquadFilter(), dg = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+    lp.type = 'lowpass'; lp.frequency.value = 200; lp.Q.value = 5; dg.gain.value = 0.06;
+    lfo.frequency.value = 0.05; depth.gain.value = 110; lfo.connect(depth).connect(lp.frequency); lfo.start();
+    lp.connect(dg); dg.connect(out); dg.connect(verb);
+    const drone = [73.42, 73.8, 110].map(f => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(); return o; });  // D, D detuned, A
+    // notes: D minor with a flat second (Eb) for unease, soft bell-like plucks that mostly live in the reverb
+    const SCALE = [293.66, 311.13, 349.23, 392.0, 440.0, 466.16, 523.25, 587.33];
+    const note = (delay = 0) => {
+      const t = ctx.currentTime + delay, f = SCALE[Math.floor(Math.random() * SCALE.length)] / (Math.random() < 0.4 ? 2 : 1);
+      const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain();
+      o.type = 'sine'; o2.type = 'triangle'; o.frequency.value = f; o2.frequency.value = f * 2.003; g2.gain.value = 0.2;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 4);
+      o.connect(g); o2.connect(g2).connect(g); g.connect(out); g.connect(verb);
+      o.start(t); o2.start(t); o.stop(t + 4.1); o2.stop(t + 4.1);
+    };
+    // clock: a very quiet tick-tock, the three days running out
+    const tick = (hi) => {
+      const t = ctx.currentTime, b = ctx.createBuffer(1, 600, ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 4;
+      const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = b; bp.type = 'bandpass'; bp.frequency.value = hi ? 3200 : 2400; bp.Q.value = 4; g.gain.value = 0.05;
+      src.connect(bp).connect(g).connect(out); src.start(t);
+    };
+    let beat = 0;
+    const timer = setInterval(() => {
+      tick(beat % 2 === 0);
+      if (beat % 3 === 0 && Math.random() < 0.6) note(Math.random() * 0.4);
+      if (beat % 9 === 4 && Math.random() < 0.35) { note(); note(0.35); }  // now and then a two-note phrase
+      beat++;
+    }, 1000);
+    music = { stop() {
+      clearInterval(timer);
+      const t = ctx.currentTime; out.gain.cancelScheduledValues(t); out.gain.setValueAtTime(out.gain.value, t); out.gain.linearRampToValueAtTime(0, t + 1.5);
+      setTimeout(() => { drone.forEach(o => o.stop()); lfo.stop(); out.disconnect(); }, 1600);
+    } };
+  } catch (e) { music = null; }  // no audio (blocked or unsupported): the game plays silently
+}
+function stopMusic() { if (music) { music.stop(); music = null; } }
+function renderMusic() { $('musicBtn').textContent = '♪ Music'; $('musicBtn').setAttribute('aria-pressed', String(musicOn)); }
+$('musicBtn').onclick = () => {
+  musicOn = !musicOn; try { localStorage.setItem('fc:music', musicOn ? '1' : '0'); } catch (e) {}
+  renderMusic(); musicOn ? startMusic() : stopMusic();
+};
+renderMusic();
+function shake() { if (calm) return; const d = $('verdictDlg'); d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake'); }
+
+// the rubber stamp tool: wooden knob, neck, base and the inked rubber (currentColor = ink colour)
+const STAMP_TOOL = `<svg viewBox="0 0 400 300" aria-hidden="true">
+  <defs><linearGradient id="wood" x1="0" x2="1"><stop offset="0" stop-color="#4f2b14"/><stop offset=".42" stop-color="#a36a39"/><stop offset="1" stop-color="#43230f"/></linearGradient></defs>
+  <ellipse cx="200" cy="56" rx="74" ry="48" fill="url(#wood)"/><ellipse cx="178" cy="38" rx="30" ry="13" fill="#fff" opacity=".2"/>
+  <path d="M176 96h48l12 104h-72z" fill="url(#wood)"/>
+  <rect x="40" y="196" width="320" height="28" rx="6" fill="#33200f"/>
+  <rect x="30" y="222" width="340" height="56" rx="4" fill="url(#wood)"/>
+  <rect x="36" y="277" width="328" height="17" rx="3" fill="currentColor"/></svg>`;
+let sceneRun = 0;
+// full-page stamp: the tool comes down, slams (sound + shake + imprint), lifts away; resolves when the page is clear
+function stampScene(word, cls) {
+  const sc = $('stampScene'), run = ++sceneRun;
+  const tool = el('div', 'tool ' + cls), imprint = el('div', 'imprint ' + cls, word);
+  tool.innerHTML = STAMP_TOOL;  // static, authored markup
+  // size the imprint to the rubber: about half the screen wide, never taller than a fifth of it
+  imprint.style.fontSize = Math.min(innerWidth * 0.56 / (word.length * 0.66 + 0.9), innerHeight * 0.2) + 'px';
+  sc.innerHTML = ''; sc.append(imprint, tool);
+  sc.classList.remove('out', 'shake'); sc.classList.add('on');
+  try { sc.showPopover(); } catch (e) {}  // top layer, above the open dialog
+  const at = calm ? [0, 900, 1200] : [990, 2500, 2950];  // impact, fade, gone (impact = 58% of the 1.7s fall)
+  return new Promise(done => {
+    setTimeout(() => {
+      if (run !== sceneRun) return;
+      imprint.classList.add('hit'); thunk(1.3);
+      if (!calm) { sc.classList.add('shake'); document.body.classList.remove('shake'); void document.body.offsetWidth; document.body.classList.add('shake'); }
+    }, at[0]);
+    setTimeout(() => { if (run === sceneRun) sc.classList.add('out'); }, at[1]);
+    setTimeout(() => {
+      if (run === sceneRun) { try { sc.hidePopover(); } catch (e) {} sc.classList.remove('on', 'out', 'shake'); sc.innerHTML = ''; document.body.classList.remove('shake'); }
+      done();
+    }, at[2]);
+  });
+}
+
+$('verdictBtn').onclick = () => {
+  if (S.result) return showResult(S.result, true);  // already filed: open report, no replay
+  $('verdictForm').classList.remove('hidden'); $('verdictResult').classList.add('hidden'); $('verdictErr').textContent = '';
+  $('verdictChoices').innerHTML = '';
+  for (const v of ['authentic', 'forged', 'inconclusive']) {
+    const b = el('button', 'vbox' + (v === choice ? ' on' : '')); b.setAttribute('aria-pressed', String(v === choice));
+    b.append(el('i'), v[0].toUpperCase() + v.slice(1));
+    b.onclick = () => { choice = v; for (const x of $('verdictChoices').children) { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); } };
+    $('verdictChoices').append(b);
+  }
+  $('repMeta').textContent = `Report of findings · ${CASES[S.case_id].title} · Day ${Math.min(DAYS, Math.floor(S.actions_used / ACTIONS_PER_DAY) + 1)}`;
+  const list = $('evidenceList'); list.innerHTML = '';
+  const pinnedTurns = S.turns.filter(t => S.pinned.includes(t.turn_id));
+  if (!pinnedTurns.length) list.append(el('p', 'meta', 'Nothing pinned yet. Pin expert answers from the conversation first.'));
+  for (const t of pinnedTurns) {
+    const l = el('label', `x-${t.agent}`); const cb = el('input'); cb.type = 'checkbox'; cb.checked = true; cb.value = t.turn_id;
+    const txt = el('span'); txt.append(el('b', null, EXPERTS[t.agent].name), `${t.reply.slice(0, 160)}${t.reply.length > 160 ? '…' : ''}`);
+    l.append(cb, txt);
+    list.append(l);
+  }
+  if (!$('verdictDlg').open) $('verdictDlg').showModal();
+};
+$('cancelVerdict').onclick = () => $('verdictDlg').close();
+$('submitVerdict').onclick = async () => {
+  const evidence = [...document.querySelectorAll('#evidenceList input:checked')].map(i => Number(i.value));
+  if (!choice) return $('verdictErr').textContent = 'Choose a verdict.';
+  if (evidence.length < 3) return $('verdictErr').textContent = 'Cite at least three pieces of evidence.';
+  $('submitVerdict').disabled = true; $('submitVerdict').textContent = 'Sending to the board…'; $('verdictErr').textContent = '';
+  // beat 1: a full-page rubber stamp brings down YOUR verdict while the board scores it
+  const scene = stampScene(choice, VERDICT_STAMP[choice]);
+  try {
+    const [j] = await Promise.all([
+      fetch(API + '/verdict', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: S.session_id, case_id: S.case_id, verdict: choice, evidence, reasoning: $('reasoning').value }) })
+        .then(r => r.json()),
+      scene,
+    ]);
+    if (!j.ok) throw new Error(j.error || 'Verdict rejected');
+    S.result = j; save(); renderLog(); renderClock(); renderPinned(); showResult(j);
+  } catch (e) {
+    await scene;  // let the stamp finish before the error shows
+    $('verdictErr').textContent = e.message;
+  }
+  $('submitVerdict').disabled = false; $('submitVerdict').textContent = 'Submit';
+};
+
+let showRun = 0;  // closing and reopening mid-scene must not run two scenes into one dialog
+async function typeOut(node, text, quick) {
+  if (quick || calm) { node.textContent = text; return; }
+  for (const ch of text) { node.textContent += ch; await pause(70); }
+}
+async function showResult(j, instant = false) {
+  const run = ++showRun, quick = instant || calm;
+  $('verdictForm').classList.add('hidden');
+  const r = $('verdictResult'); r.classList.remove('hidden'); r.classList.toggle('instant', instant); r.innerHTML = '';
+  if (!$('verdictDlg').open) $('verdictDlg').showModal();
+
+  // beat 2: the sealed file opens
+  const env = el('div', 'envelope'), rep = el('div', 'report');
+  env.append(el('div', 'seal', 'FC'), el('div', 'label', 'Sealed · case truth'), rep);
+  const vs = el('div', 'vs'), you = el('div', null, 'You said'), truth = el('div', null, 'The sealed file says'), truthWord = el('b');
+  you.append(el('b', null, j.verdict)); truth.append(truthWord); vs.append(you, truth);
+  const tags = el('div', 'tags'), name = a => (EXPERTS[a] && EXPERTS[a].name) || a;
+  j.cited_agents.forEach(a => tags.append(el('span', 'tag', name(a))));
+  j.missed_agents.forEach(a => tags.append(el('span', 'tag missed', `${name(a)} · not cited`)));
+  rep.append(vs, el('p', null, j.explanation), el('p', 'meta', 'Red herring: ' + j.red_herrings), el('div', 'who', 'Evidence cited'), tags);
+  r.append(env);
+  await pause(600, quick); if (run !== showRun) return;
+  if (!quick) thunk(0.5);
+  env.classList.add('open');
+  await pause(500, quick); if (run !== showRun) return;
+  await typeOut(truthWord, j.truth_verdict, quick); if (run !== showRun) return;
+  await pause(500, quick); if (run !== showRun) return;
+
+  // beat 3: the judgement, stamped across the whole page first
+  if (!quick) { await stampScene(j.correct ? 'Verdict holds' : 'Verdict fails', j.correct ? 'ok' : 'bad'); if (run !== showRun) return; }
+  const row = el('div', 'judgement'), score = el('div', 'score', String(j.score));
+  score.append(el('small', null, ' / 100'));
+  row.append(el('div', 'stamp ' + (j.correct ? 'ok' : 'bad'), j.correct ? 'Verdict holds' : 'Verdict fails'), score);
+  r.append(row);
+  const close = el('button', 'btn ghost', 'Close'), actions = el('div', 'actions');
+  close.onclick = () => $('verdictDlg').close();
+  actions.append(close); r.append(actions);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+{
+  "name": "Scientist",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "question"
+            },
+            {
+              "name": "case_id"
+            }
+          ]
+        }
+      },
+      "id": "n1",
+      "name": "When Called by Game",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "n2",
+      "name": "Manual Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "question",
+              "value": "Check whether the paint in this painting could exist at its claimed date",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "case_id",
+              "value": "case_widows_supper",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n3",
+      "name": "Test Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scientist-test",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "n4",
+      "name": "Test Webhook",
+      "webhookId": "b7d1c2e4-5a6f-4e3b-9c8d-1f2a3b4c5d6e",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "question",
+              "value": "={{ $json.body ? $json.body.question : $json.question }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "case_id",
+              "value": "={{ $json.body ? $json.body.case_id : $json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "feedback",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n5",
+      "name": "Prepare Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.question }}{{ $json.feedback ? '\\n\\n[Internal review, not from the player: ' + $json.feedback + ']' : '' }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are the Scientist, a dry, precise conservation scientist.\nYou are examining case {{ $json.case_id }}. Never ask the player for a case or sample id.\nYour job: identify the material, get its first-available year, get the case's date windows, and call intersect to see if they can all be true at once.\nRules:\n- Never state, imply or confirm a verdict (forged, fake, authentic, genuine). The player decides.\n- Never do arithmetic yourself. Always call intersect.\n- Every claim cites the tool it came from.\n- Always give at least one caveat. If incompatible: what could explain it without forgery (reused old canvas, later restoration, single sample point). If compatible: that compatibility is not proof of authenticity.\n- If the material is uncertain (two candidates above 0.3) and they give different results, abstain and say which measurement would settle it.\n- For greetings or off-topic questions, answer in one dry line, no tools.\n- If asked for a verdict, deflect in one dry in-character line, then give the dates anyway.\n- Any question or remark about the painting, its paint, pigments, materials, dates, or anything feeling odd or wrong IS an investigation: call get_material, then get_material_date for every candidate above 0.3, then get_case_windows, then intersect with the material window plus the claimed, provenance, radiocarbon and stylistic windows. With two candidates, call intersect once per candidate.\n- Only plain greetings, thanks, or topics unrelated to the painting are off-topic.\nOutput: remark answers the current question in 2-4 dry sentences (one line for greetings), naming the tool behind each fact, e.g. \"(get_material_date)\"; never reuse an earlier remark. caveats: if incompatible, include at least one innocent explanation (reused old canvas, later restoration, single sample point); if compatible, include that compatibility is not proof of authenticity. next_investigation: the measurement or check that would add most. tools_called lists the tools you actually called this turn (empty if none). claimed_date is [claimed_start, claimed_end]. Copy feasible_interval, gap_years and conflicting_pair from intersect; leave them null when you abstain or ran no tools.",
+          "maxIterations": 12
+        }
+      },
+      "id": "n6",
+      "name": "Scientist Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "position": [
+        704,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "maxTokensToSample": 1500,
+          "temperature": 0.2
+        }
+      },
+      "id": "n7",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        480,
+        480
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "F0S0yQGgOYo0E7bh",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.case_id }}",
+        "contextWindowLength": 3
+      },
+      "id": "n8",
+      "name": "Case Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "UgL4pR1ee8oQofpd"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "keyValue": "={{ $('Prepare Input').first().json.case_id }}"
+            }
+          ]
+        }
+      },
+      "id": "n9",
+      "name": "get_case_windows",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "OS8AFdmsWfpEdnwE"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "material",
+              "keyValue": "={{ $fromAI('material', 'snake_case material id, e.g. cobalt_blue', 'string') }}"
+            }
+          ]
+        }
+      },
+      "id": "n10",
+      "name": "get_material_date",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "description": "get_material: identifies the material in the paint sample of a case. Input: case_id (the case you are examining). Returns candidate materials with confidence scores (0-1).",
+        "language": "python",
+        "pythonCode": "# Restorer stub: canned pigment analysis per case. Input: {\"case_id\": \"case_starry_night\"}\n# Minimal JSON helpers: n8n's Python task runner blocks stdlib imports (incl. json) by default.\ndef to_json(v):\n    if v is None:\n        return \"null\"\n    if v is True:\n        return \"true\"\n    if v is False:\n        return \"false\"\n    if isinstance(v, (int, float)):\n        return str(v)\n    if isinstance(v, str):\n        out = '\"'\n        for ch in v:\n            code = ord(ch)\n            if ch == '\"' or ch == \"\\\\\":\n                out += \"\\\\\" + ch\n            elif ch == \"\\n\":\n                out += \"\\\\n\"\n            elif ch == \"\\r\":\n                out += \"\\\\r\"\n            elif ch == \"\\t\":\n                out += \"\\\\t\"\n            elif code < 32 or 126 < code < 0x10000:\n                out += \"\\\\u%04x\" % code\n            elif code >= 0x10000:\n                code -= 0x10000\n                out += \"\\\\u%04x\\\\u%04x\" % (0xD800 + (code >> 10), 0xDC00 + (code & 0x3FF))\n            else:\n                out += ch\n        return out + '\"'\n    if isinstance(v, (list, tuple)):\n        return \"[\" + \",\".join(to_json(x) for x in v) + \"]\"\n    if isinstance(v, dict):\n        return \"{\" + \",\".join(to_json(str(k)) + \":\" + to_json(x) for k, x in v.items()) + \"}\"\n    return to_json(str(v))\n\ndef parse_json(s):\n    pos = [0]\n    n = len(s)\n    escapes = {'\"': '\"', \"\\\\\": \"\\\\\", \"/\": \"/\", \"b\": \"\\b\", \"f\": \"\\f\", \"n\": \"\\n\", \"r\": \"\\r\", \"t\": \"\\t\"}\n\n    def ws():\n        while pos[0] < n and s[pos[0]] in \" \\t\\r\\n\":\n            pos[0] += 1\n\n    def expect(ch):\n        ws()\n        if pos[0] >= n or s[pos[0]] != ch:\n            raise ValueError(\"expected \" + ch)\n        pos[0] += 1\n\n    def peek():\n        ws()\n        return s[pos[0]] if pos[0] < n else \"\"\n\n    def value():\n        c = peek()\n        if c == \"{\":\n            pos[0] += 1\n            out = {}\n            if peek() == \"}\":\n                pos[0] += 1\n                return out\n            while True:\n                if peek() != '\"':\n                    raise ValueError(\"expected key\")\n                key = value()\n                expect(\":\")\n                out[key] = value()\n                if peek() == \",\":\n                    pos[0] += 1\n                    continue\n                expect(\"}\")\n                return out\n        if c == \"[\":\n            pos[0] += 1\n            out = []\n            if peek() == \"]\":\n                pos[0] += 1\n                return out\n            while True:\n                out.append(value())\n                if peek() == \",\":\n                    pos[0] += 1\n                    continue\n                expect(\"]\")\n                return out\n        if c == '\"':\n            pos[0] += 1\n            out = \"\"\n            while True:\n                if pos[0] >= n:\n                    raise ValueError(\"unterminated string\")\n                ch = s[pos[0]]\n                pos[0] += 1\n                if ch == '\"':\n                    return out\n                if ch != \"\\\\\":\n                    out += ch\n                    continue\n                esc = s[pos[0]:pos[0] + 1]\n                pos[0] += 1\n                if esc == \"u\":\n                    code = int(s[pos[0]:pos[0] + 4], 16)\n                    pos[0] += 4\n                    if 0xD800 <= code < 0xDC00 and s[pos[0]:pos[0] + 2] == \"\\\\u\":\n                        low = int(s[pos[0] + 2:pos[0] + 6], 16)\n                        if 0xDC00 <= low < 0xE000:\n                            code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00)\n                            pos[0] += 6\n                    out += chr(code)\n                elif esc in escapes:\n                    out += escapes[esc]\n                else:\n                    raise ValueError(\"bad escape\")\n        for word, val in ((\"true\", True), (\"false\", False), (\"null\", None)):\n            if s.startswith(word, pos[0]):\n                pos[0] += len(word)\n                return val\n        start = pos[0]\n        while pos[0] < n and s[pos[0]] in \"+-0123456789.eE\":\n            pos[0] += 1\n        text = s[start:pos[0]]\n        if not text:\n            raise ValueError(\"unexpected character\")\n        return float(text) if (\".\" in text or \"e\" in text or \"E\" in text) else int(text)\n\n    result = value()\n    ws()\n    if pos[0] != n:\n        raise ValueError(\"trailing data\")\n    return result\n\ndef dump(obj):\n    return to_json(obj)\n\nSTUB = {\n    \"case_starry_night\": [{\"material\": \"cobalt_blue\", \"confidence\": 0.91}, {\"material\": \"synthetic_ultramarine\", \"confidence\": 0.07}],\n    \"case_widows_supper\": [{\"material\": \"phenolformaldehyde_resin\", \"confidence\": 0.96}, {\"material\": \"lead_white\", \"confidence\": 0.03}],\n    \"case_blue_horses_dusk\": [{\"material\": \"titanium_white\", \"confidence\": 0.55}, {\"material\": \"zinc_white\", \"confidence\": 0.42}],\n}\n\ndata = _query\nif isinstance(data, str):\n    try:\n        data = parse_json(data)\n    except Exception:\n        data = {\"case_id\": data}\ncase_id = data.get(\"case_id\") if isinstance(data, dict) else None\ncase_id = case_id.strip().lower() if isinstance(case_id, str) else \"\"\n\nif case_id not in STUB:\n    return dump({\"error\": \"Unknown case_id \" + to_json(case_id), \"known_cases\": list(STUB)})\nreturn dump({\"source\": \"get_material (Restorer stub)\", \"candidates\": STUB[case_id]})\n",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"case_id\": {\n      \"type\": \"string\",\n      \"description\": \"The case id you are examining: case_starry_night, case_widows_supper or case_blue_horses_dusk\"\n    }\n  },\n  \"required\": [\n    \"case_id\"\n  ]\n}"
+      },
+      "id": "n11",
+      "name": "get_material (Restorer stub)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1040,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "description": "intersect: checks whether several named date windows can all be true at once. Input: a JSON object of named [start, end] year windows, e.g. {\"material\":[1907,2026],\"claimed\":[1650,1700],\"provenance\":[1650,1700],\"radiocarbon\":[1640,1710],\"stylistic\":[1650,1700]}. The material window is [first_available, 2026]. Returns {empty:false, interval:[lo,hi]} or {empty:true, conflicting_pair:[a,b], gap_years:n}.",
+        "language": "python",
+        "pythonCode": "# Intersect named date windows. Input: {\"material\":[1907,2026],\"claimed\":[1650,1700], ...}\n# Minimal JSON helpers: n8n's Python task runner blocks stdlib imports (incl. json) by default.\ndef to_json(v):\n    if v is None:\n        return \"null\"\n    if v is True:\n        return \"true\"\n    if v is False:\n        return \"false\"\n    if isinstance(v, (int, float)):\n        return str(v)\n    if isinstance(v, str):\n        out = '\"'\n        for ch in v:\n            code = ord(ch)\n            if ch == '\"' or ch == \"\\\\\":\n                out += \"\\\\\" + ch\n            elif ch == \"\\n\":\n                out += \"\\\\n\"\n            elif ch == \"\\r\":\n                out += \"\\\\r\"\n            elif ch == \"\\t\":\n                out += \"\\\\t\"\n            elif code < 32 or 126 < code < 0x10000:\n                out += \"\\\\u%04x\" % code\n            elif code >= 0x10000:\n                code -= 0x10000\n                out += \"\\\\u%04x\\\\u%04x\" % (0xD800 + (code >> 10), 0xDC00 + (code & 0x3FF))\n            else:\n                out += ch\n        return out + '\"'\n    if isinstance(v, (list, tuple)):\n        return \"[\" + \",\".join(to_json(x) for x in v) + \"]\"\n    if isinstance(v, dict):\n        return \"{\" + \",\".join(to_json(str(k)) + \":\" + to_json(x) for k, x in v.items()) + \"}\"\n    return to_json(str(v))\n\ndef parse_json(s):\n    pos = [0]\n    n = len(s)\n    escapes = {'\"': '\"', \"\\\\\": \"\\\\\", \"/\": \"/\", \"b\": \"\\b\", \"f\": \"\\f\", \"n\": \"\\n\", \"r\": \"\\r\", \"t\": \"\\t\"}\n\n    def ws():\n        while pos[0] < n and s[pos[0]] in \" \\t\\r\\n\":\n            pos[0] += 1\n\n    def expect(ch):\n        ws()\n        if pos[0] >= n or s[pos[0]] != ch:\n            raise ValueError(\"expected \" + ch)\n        pos[0] += 1\n\n    def peek():\n        ws()\n        return s[pos[0]] if pos[0] < n else \"\"\n\n    def value():\n        c = peek()\n        if c == \"{\":\n            pos[0] += 1\n            out = {}\n            if peek() == \"}\":\n                pos[0] += 1\n                return out\n            while True:\n                if peek() != '\"':\n                    raise ValueError(\"expected key\")\n                key = value()\n                expect(\":\")\n                out[key] = value()\n                if peek() == \",\":\n                    pos[0] += 1\n                    continue\n                expect(\"}\")\n                return out\n        if c == \"[\":\n            pos[0] += 1\n            out = []\n            if peek() == \"]\":\n                pos[0] += 1\n                return out\n            while True:\n                out.append(value())\n                if peek() == \",\":\n                    pos[0] += 1\n                    continue\n                expect(\"]\")\n                return out\n        if c == '\"':\n            pos[0] += 1\n            out = \"\"\n            while True:\n                if pos[0] >= n:\n                    raise ValueError(\"unterminated string\")\n                ch = s[pos[0]]\n                pos[0] += 1\n                if ch == '\"':\n                    return out\n                if ch != \"\\\\\":\n                    out += ch\n                    continue\n                esc = s[pos[0]:pos[0] + 1]\n                pos[0] += 1\n                if esc == \"u\":\n                    code = int(s[pos[0]:pos[0] + 4], 16)\n                    pos[0] += 4\n                    if 0xD800 <= code < 0xDC00 and s[pos[0]:pos[0] + 2] == \"\\\\u\":\n                        low = int(s[pos[0] + 2:pos[0] + 6], 16)\n                        if 0xDC00 <= low < 0xE000:\n                            code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00)\n                            pos[0] += 6\n                    out += chr(code)\n                elif esc in escapes:\n                    out += escapes[esc]\n                else:\n                    raise ValueError(\"bad escape\")\n        for word, val in ((\"true\", True), (\"false\", False), (\"null\", None)):\n            if s.startswith(word, pos[0]):\n                pos[0] += len(word)\n                return val\n        start = pos[0]\n        while pos[0] < n and s[pos[0]] in \"+-0123456789.eE\":\n            pos[0] += 1\n        text = s[start:pos[0]]\n        if not text:\n            raise ValueError(\"unexpected character\")\n        return float(text) if (\".\" in text or \"e\" in text or \"E\" in text) else int(text)\n\n    result = value()\n    ws()\n    if pos[0] != n:\n        raise ValueError(\"trailing data\")\n    return result\n\ndef dump(obj):\n    return to_json(obj)\n\ndef year(x):\n    return int(x) if x == int(x) else x\n\ndata = _query\nif isinstance(data, str):\n    try:\n        data = parse_json(data)\n    except Exception:\n        return dump({\"error\": 'Input must be a JSON object of named windows, e.g. {\"material\":[1907,2026],\"claimed\":[1650,1700]}'})\nif isinstance(data, dict) and isinstance(data.get(\"input\"), str):\n    try:\n        data = parse_json(data[\"input\"])\n    except Exception:\n        pass\n\nwindows = []\nfor name, w in (data.items() if isinstance(data, dict) else []):\n    try:\n        if not isinstance(w, list) or len(w) != 2:\n            raise ValueError\n        start, end = float(w[0]), float(w[1])\n        if start != start or end != end:\n            raise ValueError\n    except (ValueError, TypeError):\n        return dump({\"error\": 'Window \"' + str(name) + '\" must be [start, end] numbers'})\n    windows.append({\"name\": name, \"start\": year(start), \"end\": year(end)})\nif len(windows) < 2:\n    return dump({\"error\": \"Need at least two named windows\"})\n\n# a = window with the latest start, b = window with the earliest end\na = b = windows[0]\nfor w in windows:\n    if w[\"start\"] > a[\"start\"]:\n        a = w\n    if w[\"end\"] < b[\"end\"]:\n        b = w\nif a[\"start\"] <= b[\"end\"]:\n    return dump({\"empty\": False, \"interval\": [a[\"start\"], b[\"end\"]]})\nreturn dump({\"empty\": True, \"conflicting_pair\": [a[\"name\"], b[\"name\"]], \"gap_years\": a[\"start\"] - b[\"end\"]})\n"
+      },
+      "id": "n12",
+      "name": "intersect",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"remark\": { \"type\": \"string\", \"description\": \"In-character answer to the player\" },\n    \"material\": { \"type\": [\"string\", \"null\"] },\n    \"claimed_date\": { \"type\": [\"array\", \"null\"], \"items\": { \"type\": \"integer\" }, \"description\": \"[start, end] from get_case_windows\" },\n    \"feasible_interval\": { \"type\": [\"array\", \"null\"], \"items\": { \"type\": \"integer\" }, \"description\": \"interval from intersect, null if empty or not run\" },\n    \"is_anachronistic\": { \"type\": [\"boolean\", \"null\"] },\n    \"gap_years\": { \"type\": [\"integer\", \"null\"] },\n    \"conflicting_pair\": { \"type\": [\"array\", \"null\"], \"items\": { \"type\": \"string\" } },\n    \"abstained\": { \"type\": \"boolean\" },\n    \"abstention_reason\": { \"type\": [\"string\", \"null\"] },\n    \"caveats\": { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"minItems\": 1 },\n    \"next_investigation\": { \"type\": [\"string\", \"null\"] },\n    \"tools_called\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } }\n  },\n  \"required\": [\"remark\", \"material\", \"claimed_date\", \"feasible_interval\", \"is_anachronistic\", \"gap_years\", \"conflicting_pair\", \"abstained\", \"abstention_reason\", \"caveats\", \"next_investigation\", \"tools_called\"],\n  \"additionalProperties\": false\n}"
+      },
+      "id": "n13",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ /(?<!\\b(?:whether|if|say|tell you|decide|proof that|evidence that|prove that|proves that|mean that|means that|mean|means|show|shows|imply|implies|confirm|confirms|establish|establishes)\\s+(?:\\w+\\s+)?(?:\\w+\\s+)?)\\b(?:painting|it|this|work|canvas|piece|picture)(?:'s|’s|\\s+(?:is|was|must be|has to be))\\s+(?:not\\s+)?(?:definitely\\s+|clearly\\s+|certainly\\s+|likely\\s+|probably\\s+)?(?:an?\\s+)?(?:forged|forgery|fake|counterfeit|authentic|genuine)\\b/i.test([$json.output.remark].concat($json.output.caveats || []).join(' \\n ')) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n14",
+      "name": "Verdict Leaked?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $runIndex }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n15",
+      "name": "First Try?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1328,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "question",
+              "value": "={{ $('Prepare Input').first().json.question }}",
+              "type": "string"
+            },
+            {
+              "id": "r2",
+              "name": "case_id",
+              "value": "={{ $('Prepare Input').first().json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "feedback",
+              "value": "Your previous answer asserted a verdict (that the painting is forged/fake/authentic/genuine). That is forbidden: the player decides. Answer the same question again with dates, tool citations and caveats only, no verdict.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n16",
+      "name": "Send Back With Reason",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1552,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify({ output: Object.assign({}, $json.output, { remark: null, remark_dropped: true, caveats: (($json.output.caveats || []).filter(c => !/(?<!\\b(?:whether|if|say|tell you|decide|proof that|evidence that|prove that|proves that|mean that|means that|mean|means|show|shows|imply|implies|confirm|confirms|establish|establishes)\\s+(?:\\w+\\s+)?(?:\\w+\\s+)?)\\b(?:painting|it|this|work|canvas|piece|picture)(?:'s|’s|\\s+(?:is|was|must be|has to be))\\s+(?:not\\s+)?(?:definitely\\s+|clearly\\s+|certainly\\s+|likely\\s+|probably\\s+)?(?:an?\\s+)?(?:forged|forgery|fake|counterfeit|authentic|genuine)\\b/i.test(c)).length ? ($json.output.caveats || []).filter(c => !/(?<!\\b(?:whether|if|say|tell you|decide|proof that|evidence that|prove that|proves that|mean that|means that|mean|means|show|shows|imply|implies|confirm|confirms|establish|establishes)\\s+(?:\\w+\\s+)?(?:\\w+\\s+)?)\\b(?:painting|it|this|work|canvas|piece|picture)(?:'s|’s|\\s+(?:is|was|must be|has to be))\\s+(?:not\\s+)?(?:definitely\\s+|clearly\\s+|certainly\\s+|likely\\s+|probably\\s+)?(?:an?\\s+)?(?:forged|forgery|fake|counterfeit|authentic|genuine)\\b/i.test(c)) : ['Remark withheld: it asserted a verdict. The dates stand on the cited tool results only.']) }) }) }}",
+        "options": {}
+      },
+      "id": "n17",
+      "name": "Drop Remark",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1552,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify($json.output) }}",
+        "options": {}
+      },
+      "id": "n18",
+      "name": "Return JSON",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Game": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test": {
+      "main": [
+        [
+          {
+            "node": "Test Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Input": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scientist Agent": {
+      "main": [
+        [
+          {
+            "node": "Verdict Leaked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verdict Leaked?": {
+      "main": [
+        [
+          {
+            "node": "First Try?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "First Try?": {
+      "main": [
+        [
+          {
+            "node": "Send Back With Reason",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drop Remark",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Back With Reason": {
+      "main": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drop Remark": {
+      "main": [
+        [
+          {
+            "node": "Return JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Case Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_case_windows": {
+      "ai_tool": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_material_date": {
+      "ai_tool": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_material (Restorer stub)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "intersect": {
+      "ai_tool": [
+        [
+          {
+            "node": "Scientist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "f0856ed0-56c3-4c65-8fbd-5f8ca43116cf",
+  "meta": {
+    "instanceId": "066e756e478e2046a663539dd33ef37b5368754a9e5f9c90b6cc2d04bc2526ee"
+  },
+  "nodeGroups": [],
+  "id": "Dtfggl0LnFYse7NO",
+  "tags": []
+}

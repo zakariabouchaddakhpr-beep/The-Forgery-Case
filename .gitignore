@@ -1,0 +1,5 @@
+keys.env
+tools/.creds.tmp.json
+__pycache__/
+*.pyc
+.superpowers/
